@@ -8,7 +8,10 @@ import LoadMoreScreen from "../screens/LoadMoreScreen";
 const MainStack = createStackNavigator();
 
 export const AppNavigator = () => (
-  <MainStack.Navigator>
+  <MainStack.Navigator
+    initialRouteName="Home"
+    screenOptions={{ headerShown: false }}
+  >
     <MainStack.Screen name="Home" component={HomeScreen} />
     <MainStack.Screen name="Details" component={DetailsScreen} />
     <MainStack.Screen name="Cast" component={CastScreen} />
