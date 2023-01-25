@@ -1,7 +1,6 @@
 import {
   Platform,
   StyleSheet,
-  View,
   StatusBar as RNStatusBar,
   SafeAreaView,
   ScrollView,
@@ -14,10 +13,10 @@ import { COLORS, WEIGHTS } from "../theme";
 import { StatusBar } from "expo-status-bar";
 import Slider from "../components/slider/Slider";
 import Container from "../components/container/Container";
-import Image from "../components/ui/Image";
 import Movie from "../components/movie/Movie";
 import { Client } from "../api/Client";
 import { ENDPOINTS } from "../utils/Urls";
+import ItemSeperator from "../components/itemseperator/ItemSeperator";
 
 const HomeScreen = ({ navigation }) => {
   const [popularMovies, setPopularMovies] = useState({ page: 0, results: [] });
@@ -73,21 +72,9 @@ const HomeScreen = ({ navigation }) => {
           style={{ marginTop: 8 }}
           data={popularMovies.results}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity
-              style={{
-                borderRadius: 8,
-                marginRight: index === popularMovies.results.length - 1 ? 0 : 8,
-              }}
-              onPress={() => {
-                console.log(item.id);
-                navigation.navigate("Details", { ...item });
-              }}
-            >
-              <Movie large {...item} />
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => <Movie large movie={item} />}
           horizontal
+          ItemSeparatorComponent={<ItemSeperator width={8} />}
           showsHorizontalScrollIndicator={false}
         />
         <Container
@@ -112,20 +99,8 @@ const HomeScreen = ({ navigation }) => {
           style={{ marginTop: 8 }}
           data={newMovies.results}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity
-              style={{
-                borderRadius: 8,
-                marginRight: index === popularMovies.results.length - 1 ? 0 : 8,
-              }}
-              onPress={() => {
-                console.log(item.id);
-                navigation.navigate("Details", { ...item });
-              }}
-            >
-              <Movie {...item} />
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => <Movie movie={item} />}
+          ItemSeparatorComponent={<ItemSeperator width={8} />}
           horizontal
           showsHorizontalScrollIndicator={false}
         />
@@ -151,20 +126,8 @@ const HomeScreen = ({ navigation }) => {
           style={{ marginTop: 8 }}
           data={comingMovies.results}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity
-              style={{
-                borderRadius: 8,
-                marginRight: index === popularMovies.results.length - 1 ? 0 : 8,
-              }}
-              onPress={() => {
-                console.log(item.id);
-                navigation.navigate("Details", { ...item });
-              }}
-            >
-              <Movie {...item} />
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => <Movie movie={item} />}
+          ItemSeparatorComponent={<ItemSeperator width={8} />}
           horizontal
           showsHorizontalScrollIndicator={false}
         />

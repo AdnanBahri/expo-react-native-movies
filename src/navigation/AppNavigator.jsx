@@ -4,13 +4,18 @@ import DetailsScreen from "../screens/DetailsScreen";
 import FullScreen from "../screens/FullScreen";
 import HomeScreen from "../screens/HomeScreen";
 import LoadMoreScreen from "../screens/LoadMoreScreen";
+import { COLORS } from "../theme";
 
 const MainStack = createStackNavigator();
 
 export const AppNavigator = () => (
   <MainStack.Navigator
     initialRouteName="Home"
-    screenOptions={{ headerShown: false }}
+    screenOptions={{
+      headerShown: false,
+      headerStyle: { elevation: 0 },
+      cardStyle: { backgroundColor: COLORS.light.secondary },
+    }}
   >
     <MainStack.Screen name="Home" component={HomeScreen} />
     <MainStack.Screen name="Details" component={DetailsScreen} />
