@@ -126,16 +126,14 @@ const DetailsScreen = ({ route: { params } }) => {
             <Container horizontal>
               {(genre_ids.length > 3 ? genre_ids.slice(0, 3) : genre_ids).map(
                 (item) => (
-                  <View>
-                    <Genre
-                      id={item}
-                      key={item}
-                      small
-                      color={COLORS.light.tertiary}
-                      weight={WEIGHTS.p}
-                      style={{ marginRight: 2 }}
-                    />
-                  </View>
+                  <Genre
+                    id={item}
+                    key={item}
+                    small
+                    color={COLORS.light.tertiary}
+                    weight={WEIGHTS.p}
+                    style={{ marginRight: 2 }}
+                  />
                 )
               )}
             </Container>

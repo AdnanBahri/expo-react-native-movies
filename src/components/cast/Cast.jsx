@@ -11,7 +11,7 @@ const Cast = ({ item }) => {
     <TouchableOpacity
       onPress={() => {
         console.log(name, id);
-        navigation.navigate("Cast", { ...item });
+        navigation.push("Cast", { ...item });
       }}
       style={styles.card}
     >
