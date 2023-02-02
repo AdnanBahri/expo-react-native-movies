@@ -6,8 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
+  ActivityIndicator,
+  Image,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Text from "../components/ui/Text";
 import { COLORS, WEIGHTS } from "../theme";
 import { StatusBar } from "expo-status-bar";
@@ -17,29 +19,35 @@ import Movie from "../components/movie/Movie";
 import { Client } from "../api/Client";
 import { ENDPOINTS } from "../utils/Urls";
 import ItemSeperator from "../components/itemseperator/ItemSeperator";
+import { useQueries } from "react-query";
 
 const HomeScreen = ({ navigation }) => {
-  const [popularMovies, setPopularMovies] = useState({ page: 0, results: [] });
-  const [newMovies, setNewMovies] = useState({ page: 0, results: [] });
-  const [comingMovies, setComingMovies] = useState({ page: 0, results: [] });
-
-  useEffect(() => {
-    const getData = async (endpoint, setData) => {
-      try {
-        const resp = await Client.get(endpoint);
+  const [popularQuery, nowQuery, comingQuery] = useQueries([
+    {
+      queryKey: ["popular"],
+      queryFn: async () => {
+        const resp = await Client.get(ENDPOINTS.POPULAR);
         const data = await resp?.data;
-        setData(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        console.log(endpoint, "Done");
-      }
-    };
-
-    getData(ENDPOINTS.POPULAR, setPopularMovies);
-    getData(ENDPOINTS.NOW_PLAYING, setNewMovies);
-    getData(ENDPOINTS.UP_COMING, setComingMovies);
-  }, []);
+        return await data;
+      },
+    },
+    {
+      queryKey: ["now_playing"],
+      queryFn: async () => {
+        const resp = await Client.get(ENDPOINTS.NOW_PLAYING);
+        const data = await resp?.data;
+        return await data;
+      },
+    },
+    {
+      queryKey: ["up_coming"],
+      queryFn: async () => {
+        const resp = await Client.get(ENDPOINTS.UP_COMING);
+        const data = await resp?.data;
+        return await data;
+      },
+    },
+  ]);
 
   return (
     <SafeAreaView style={styles.mainWrapper}>
@@ -59,6 +67,7 @@ const HomeScreen = ({ navigation }) => {
           <TouchableOpacity
             onPress={() =>
               navigation.navigate("LoadMore", {
+                keyQueries: "popular_all",
                 endpoint: ENDPOINTS.POPULAR,
               })
             }
@@ -68,15 +77,23 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         </Container>
-        <FlatList
-          style={{ marginTop: 8 }}
-          data={popularMovies.results}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <Movie large movie={item} />}
-          horizontal
-          ItemSeparatorComponent={<ItemSeperator width={8} />}
-          showsHorizontalScrollIndicator={false}
-        />
+        {!popularQuery.isLoading && !popularQuery.isError ? (
+          <FlatList
+            style={{ marginTop: 8 }}
+            data={popularQuery.data.results.filter(
+              (movie) => movie.poster_path !== null
+            )}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <Movie large movie={item} />}
+            horizontal
+            ItemSeparatorComponent={<ItemSeperator width={8} />}
+            showsHorizontalScrollIndicator={false}
+          />
+        ) : popularQuery.isError ? (
+          <Text>Something Went Wrong: {popularQuery.error.message}</Text>
+        ) : (
+          <ActivityIndicator size="small" color={COLORS.light.accent} />
+        )}
         <Container
           horizontal
           justifyContent="space-between"
@@ -86,6 +103,7 @@ const HomeScreen = ({ navigation }) => {
           <TouchableOpacity
             onPress={() =>
               navigation.navigate("LoadMore", {
+                keyQueries: "now_playing_all",
                 endpoint: ENDPOINTS.NOW_PLAYING,
               })
             }
@@ -95,15 +113,23 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         </Container>
-        <FlatList
-          style={{ marginTop: 8 }}
-          data={newMovies.results}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <Movie movie={item} />}
-          ItemSeparatorComponent={<ItemSeperator width={8} />}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        />
+        {!nowQuery.isLoading && !nowQuery.isError ? (
+          <FlatList
+            style={{ marginTop: 8 }}
+            data={nowQuery.data.results.filter(
+              (movie) => movie.poster_path !== null
+            )}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <Movie movie={item} />}
+            ItemSeparatorComponent={<ItemSeperator width={8} />}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          />
+        ) : nowQuery.isError ? (
+          <Text>Something Went Wrong: {nowQuery.error.message}</Text>
+        ) : (
+          <ActivityIndicator size="small" color={COLORS.light.accent} />
+        )}
         <Container
           horizontal
           justifyContent="space-between"
@@ -113,6 +139,7 @@ const HomeScreen = ({ navigation }) => {
           <TouchableOpacity
             onPress={() =>
               navigation.navigate("LoadMore", {
+                keyQueries: "up_coming_all",
                 endpoint: ENDPOINTS.UP_COMING,
               })
             }
@@ -122,15 +149,23 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         </Container>
-        <FlatList
-          style={{ marginTop: 8 }}
-          data={comingMovies.results}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <Movie movie={item} />}
-          ItemSeparatorComponent={<ItemSeperator width={8} />}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        />
+        {!comingQuery.isLoading && !comingQuery.isError ? (
+          <FlatList
+            style={{ marginTop: 8 }}
+            data={comingQuery.data.results.filter(
+              (movie) => movie.poster_path !== null
+            )}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <Movie movie={item} />}
+            ItemSeparatorComponent={<ItemSeperator width={8} />}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          />
+        ) : comingQuery.isError ? (
+          <Text>Something Went Wrong: {comingQuery.error.message}</Text>
+        ) : (
+          <ActivityIndicator size="small" color={COLORS.light.accent} />
+        )}
       </ScrollView>
     </SafeAreaView>
   );

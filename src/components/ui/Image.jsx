@@ -12,7 +12,6 @@ import { COLORS } from "../../theme";
 const Image = ({ uri, big, ...props }) => {
   const [source, setSource] = useState(null);
   const [resLoaded, setResLoaded] = useState(false);
-  // console.log(uri);
 
   useEffect(() => {
     setResLoaded(false);

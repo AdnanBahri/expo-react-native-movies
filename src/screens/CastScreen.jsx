@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   ScrollView,
@@ -19,46 +20,67 @@ import Container from "../components/container/Container";
 import ItemSeperator from "../components/itemseperator/ItemSeperator";
 import { AntDesign } from "@expo/vector-icons";
 import Genre from "../components/genre/Genre";
+import { useQueries } from "react-query";
+import { getCastMovies } from "../api/MovieService";
 
 const { width, height } = Dimensions.get("window");
 
-const CastScreen = ({ route: { params } }) => {
+const CastScreen = ({ route: { params }, navigation }) => {
   const { profile_path, id, name } = params;
-  const navigation = useNavigation();
-  const [castDetails, setCastDetails] = useState({});
-  const [castPhotos, setCastPhotos] = useState([]);
-  const [castMovies, setCastMovies] = useState({ cast: [], crew: [] });
 
-  useEffect(() => {
-    const getDetails = async () => {
-      const resp = await Client.get(ENDPOINTS.PERSON_DETAILS_BY_ID(id));
-      const data = await resp?.data;
-      if (data) setCastDetails(data);
-      console.log("Cast Details", data.place_of_birth);
-    };
+  const [detailsQuery, photosQuery, moviesQuery] = useQueries([
+    {
+      queryKey: ["details", id],
+      queryFn: async () => {
+        const resp = await Client.get(ENDPOINTS.PERSON_DETAILS_BY_ID(id));
+        const data = await resp?.data;
+        return await data;
+      },
+    },
+    {
+      queryKey: ["photos", id],
+      queryFn: async () => {
+        const resp = await Client.get(ENDPOINTS.PERSON_PHOTOS_BY_ID(id));
+        const data = await resp?.data;
+        return await data;
+      },
+    },
+    {
+      queryKey: ["movies", id],
+      queryFn: async () => getCastMovies(ENDPOINTS.PERSON_MOVIES_BY_ID(id)),
+    },
+  ]);
 
-    const getPhotos = async () => {
-      const resp = await Client.get(ENDPOINTS.PERSON_PHOTOS_BY_ID(id));
-      const data = await resp?.data;
-      if (data && data.profiles.length > 0) setCastPhotos(data.profiles);
-      else setCastPhotos(null);
-      console.log("Cast Photos", data.profiles.length);
-    };
+  // useEffect(() => {
+  //   const getDetails = async () => {
+  //     const resp = await Client.get(ENDPOINTS.PERSON_DETAILS_BY_ID(id));
+  //     const data = await resp?.data;
+  //     if (data) setCastDetails(data);
+  //     console.log("Cast Details", data.place_of_birth);
+  //   };
 
-    const getCastMovies = async () => {
-      const resp = await Client.get(ENDPOINTS.PERSON_MOVIES_BY_ID(id));
-      const data = await resp?.data;
-      if (data != undefined && data.cast.length > 0) setCastMovies(data);
-      else {
-        setCastMovies(null);
-        console.log("Cast Movies is Null");
-      }
-      console.log("Cast Movies", data.cast.length);
-    };
-    getDetails();
-    getPhotos();
-    getCastMovies();
-  }, []);
+  //   const getPhotos = async () => {
+  //     const resp = await Client.get(ENDPOINTS.PERSON_PHOTOS_BY_ID(id));
+  //     const data = await resp?.data;
+  //     if (data && data.profiles.length > 0) setCastPhotos(data.profiles);
+  //     else setCastPhotos(null);
+  //     console.log("Cast Photos", data.profiles.length);
+  //   };
+
+  //   const getCastMovies = async () => {
+  //     const resp = await Client.get(ENDPOINTS.PERSON_MOVIES_BY_ID(id));
+  //     const data = await resp?.data;
+  //     if (data != undefined && data.cast.length > 0) setCastMovies(data);
+  //     else {
+  //       setCastMovies(null);
+  //       console.log("Cast Movies is Null");
+  //     }
+  //     console.log("Cast Movies", data.cast.length);
+  //   };
+  //   getDetails();
+  //   getPhotos();
+  //   getCastMovies();
+  // }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -98,78 +120,98 @@ const CastScreen = ({ route: { params } }) => {
               >
                 {name}
               </Text>
-              <Text small weight={WEIGHTS.text} color={COLORS.light.gray}>
-                {typeof castDetails.known_for_department === "object" &&
-                  castDetails.known_for_department.join("/ ")}
-                {typeof castDetails.known_for_department === "string" &&
-                  castDetails.known_for_department}
-              </Text>
+              {!detailsQuery.isLoading && !detailsQuery.isError ? (
+                <Text small weight={WEIGHTS.text} color={COLORS.light.gray}>
+                  {typeof detailsQuery.data.known_for_department === "object" &&
+                    detailsQuery.data.known_for_department.flat().join("/ ")}
+                  {typeof detailsQuery.data.known_for_department === "string" &&
+                    detailsQuery.data.known_for_department}
+                </Text>
+              ) : detailsQuery.isError ? (
+                <Text>{detailsQuery.error.message}</Text>
+              ) : (
+                <ActivityIndicator size="small" color={COLORS.light.accent} />
+              )}
             </Container>
             <Container>
-              <Container horizontal>
-                <Text weight={WEIGHTS.h3} color={COLORS.light.tertiary}>
-                  Date Of Birth:
-                </Text>
-                <Text
-                  weight={WEIGHTS.p}
-                  color={COLORS.light.accent}
-                  style={{ marginLeft: 4 }}
-                  lines={1}
-                >
-                  {castDetails.birthday}
-                </Text>
-              </Container>
-              <Container horizontal>
-                <Text weight={WEIGHTS.h3} color={COLORS.light.tertiary}>
-                  Place Of Birth:
-                </Text>
-                <Text
-                  weight={WEIGHTS.p}
-                  color={COLORS.light.accent}
-                  style={{ marginLeft: 4 }}
-                  lines={1}
-                >
-                  {castDetails.place_of_birth}
-                </Text>
-              </Container>
-              <Container horizontal>
-                <Text weight={WEIGHTS.h3} color={COLORS.light.tertiary}>
-                  Movies:
-                </Text>
-                <Text
-                  weight={WEIGHTS.p}
-                  color={COLORS.light.accent}
-                  style={{ marginLeft: 4 }}
-                  lines={1}
-                >
-                  {castMovies.cast.length + castMovies.crew.length}
-                </Text>
-              </Container>
+              {detailsQuery.isLoading && !detailsQuery.isError ? (
+                <ActivityIndicator />
+              ) : !detailsQuery.isLoading && detailsQuery.isError ? (
+                <Text>{detailsQuery.error.message}</Text>
+              ) : (
+                <>
+                  <Container horizontal>
+                    <Text weight={WEIGHTS.h3} color={COLORS.light.tertiary}>
+                      Date Of Birth:
+                    </Text>
+                    <Text
+                      weight={WEIGHTS.p}
+                      color={COLORS.light.accent}
+                      style={{ marginLeft: 4 }}
+                      lines={1}
+                    >
+                      {detailsQuery.data.birthday}
+                    </Text>
+                  </Container>
+                  <Container horizontal>
+                    <Text weight={WEIGHTS.h3} color={COLORS.light.tertiary}>
+                      Place Of Birth:
+                    </Text>
+                    <Text
+                      weight={WEIGHTS.p}
+                      color={COLORS.light.accent}
+                      style={{ marginLeft: 4 }}
+                      lines={1}
+                    >
+                      {detailsQuery.data.place_of_birth}
+                    </Text>
+                  </Container>
+                  <Container horizontal>
+                    <Text weight={WEIGHTS.h3} color={COLORS.light.tertiary}>
+                      Movies:
+                    </Text>
+                    <Text
+                      weight={WEIGHTS.p}
+                      color={COLORS.light.accent}
+                      style={{ marginLeft: 4 }}
+                      lines={1}
+                    >
+                      {!moviesQuery.isLoading &&
+                        !moviesQuery.isError &&
+                        moviesQuery.data.movies.length}
+                    </Text>
+                  </Container>
+                </>
+              )}
             </Container>
           </Container>
         </Container>
-        {castPhotos !== undefined && (
+        {!photosQuery.isError && !photosQuery.isLoading && (
           <Container>
-            <Container horizontal justifyContent="space-between">
+            <Container horizontal>
               <Text h3 weight={WEIGHTS.h3} color={COLORS.light.tertiary}>
                 PHOTOS
               </Text>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={() =>
-                  navigation.navigate("LoadMore", {
-                    endpoint: ENDPOINTS.POPULAR,
+                  navigation.push("ShowAll", {
+                    castMovies: true,
+                    keyQueries: ["photos", id],
+                    endpoint: ENDPOINTS.PERSON_PHOTOS_BY_ID(id),
                   })
                 }
               >
                 <Text weight={WEIGHTS.h3} color={COLORS.light.accent}>
-                  See More
+                  Show All
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </Container>
             <FlatList
               style={{ marginTop: 8 }}
-              data={castPhotos}
+              data={photosQuery.data.profiles.filter(
+                (photo) => photo.profile_path !== null
+              )}
               keyExtractor={(_, index) => index.toString()}
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -208,13 +250,15 @@ const CastScreen = ({ route: { params } }) => {
           </Text>
           <TouchableOpacity
             onPress={() =>
-              navigation.navigate("LoadMore", {
-                endpoint: ENDPOINTS.POPULAR,
+              navigation.push("ShowAll", {
+                castMovies: true,
+                keyQueries: ["movies", id],
+                endpoint: ENDPOINTS.PERSON_MOVIES_BY_ID(id),
               })
             }
           >
             <Text weight={WEIGHTS.h3} color={COLORS.light.accent}>
-              See More
+              Show All
             </Text>
           </TouchableOpacity>
         </Container>
@@ -226,89 +270,93 @@ const CastScreen = ({ route: { params } }) => {
           renderItem={({ item }) => <Text>{item.title}</Text>}
           numColumns={2}
         /> */}
-        {(castMovies.cast.length > 25
-          ? castMovies.cast.slice(0, 21)
-          : castMovies.cast
-        ).map((movie, index) => (
-          <Container
-            horizontal
-            key={index}
-            style={{
-              marginBottom: 12,
-              height: 168,
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => navigation.push("Details", { ...movie })}
-              style={{ borderRadius: 8 }}
-            >
-              <Image
-                uri={`${TMDB_IMAGE_BASE_URL}original/${movie.poster_path}`}
-                style={{ width: 110, height: 154, borderRadius: 8 }}
-              />
-            </TouchableOpacity>
-            <Container
-              style={{
-                flex: 1,
-                marginHorizontal: 8,
-                paddingVertical: 12,
-              }}
-              justifyContent="space-between"
-            >
-              <Container>
-                <Container
-                  style={{ width: "100%" }}
-                  horizontal
-                  justifyContent="space-between"
-                  alignItems="center"
+        {!moviesQuery.isLoading &&
+          !moviesQuery.isError &&
+          (moviesQuery.data.movies.length > 25
+            ? moviesQuery.data.movies.slice(0, 21)
+            : moviesQuery.data.movies
+          )
+            .filter((movie) => movie.poster_path !== null)
+            .map((movie, index) => (
+              <Container
+                horizontal
+                key={index}
+                style={{
+                  marginBottom: 12,
+                  height: 168,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => navigation.push("Details", { ...movie })}
+                  style={{ borderRadius: 8 }}
                 >
-                  <Text
-                    style={{ flex: 1, marginRight: 4 }}
-                    h3
-                    weight={WEIGHTS.h3}
-                    color={COLORS.light.tertiary}
-                    lines={1}
-                  >
-                    {movie.title}
-                  </Text>
-                  <Container horizontal center style={{ marginStart: 2 }}>
-                    <AntDesign
-                      name="star"
-                      size={14}
-                      color={COLORS.light.accent}
-                    />
-                    <Text weight={WEIGHTS.h3} color={COLORS.light.accent}>
-                      {movie.vote_average.toFixed(1)}
+                  <Image
+                    uri={`${TMDB_IMAGE_BASE_URL}original/${movie.poster_path}`}
+                    style={{ width: 110, height: 154, borderRadius: 8 }}
+                  />
+                </TouchableOpacity>
+                <Container
+                  style={{
+                    flex: 1,
+                    marginHorizontal: 8,
+                    paddingVertical: 12,
+                  }}
+                  justifyContent="space-between"
+                >
+                  <Container>
+                    <Container
+                      style={{ width: "100%" }}
+                      horizontal
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Text
+                        style={{ flex: 1, marginRight: 4 }}
+                        h3
+                        weight={WEIGHTS.h3}
+                        color={COLORS.light.tertiary}
+                        lines={1}
+                      >
+                        {movie.title}
+                      </Text>
+                      <Container horizontal center style={{ marginStart: 2 }}>
+                        <AntDesign
+                          name="star"
+                          size={14}
+                          color={COLORS.light.accent}
+                        />
+                        <Text weight={WEIGHTS.h3} color={COLORS.light.accent}>
+                          {movie.vote_average.toFixed(1)}
+                        </Text>
+                      </Container>
+                    </Container>
+                    <Text small weight={WEIGHTS.h3} color={COLORS.light.gray}>
+                      {movie.character}
+                    </Text>
+                  </Container>
+                  <Container>
+                    <Container horizontal>
+                      {(movie.genre_ids.length > 3
+                        ? movie.genre_ids.slice(0, 3)
+                        : movie.genre_ids
+                      ).map((item) => (
+                        <Genre
+                          id={item}
+                          key={item}
+                          small
+                          color={COLORS.light.tertiary}
+                          weight={WEIGHTS.p}
+                          style={{ marginRight: 2 }}
+                        />
+                      ))}
+                    </Container>
+                    <Text weight={WEIGHTS.h3} color={COLORS.light.gray}>
+                      {movie.release_date}
                     </Text>
                   </Container>
                 </Container>
-                <Text small weight={WEIGHTS.h3} color={COLORS.light.gray}>
-                  {movie.character}
-                </Text>
               </Container>
-              <Container>
-                <Container horizontal>
-                  {(movie.genre_ids.length > 3
-                    ? movie.genre_ids.slice(0, 3)
-                    : movie.genre_ids
-                  ).map((item) => (
-                    <Genre
-                      id={item}
-                      key={item}
-                      small
-                      color={COLORS.light.tertiary}
-                      weight={WEIGHTS.p}
-                      style={{ marginRight: 2 }}
-                    />
-                  ))}
-                </Container>
-                <Text weight={WEIGHTS.h3} color={COLORS.light.gray}>
-                  {movie.release_date}
-                </Text>
-              </Container>
-            </Container>
-          </Container>
-        ))}
+            ))}
       </ScrollView>
     </View>
   );

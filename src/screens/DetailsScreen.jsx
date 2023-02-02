@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Dimensions,
   Platform,
   StatusBar as RNStatusBar,
@@ -20,11 +21,11 @@ import ItemSeperator from "../components/itemseperator/ItemSeperator";
 import Cast from "../components/cast/Cast";
 import Movie from "../components/movie/Movie";
 import Genre from "../components/genre/Genre";
-import { useNavigation } from "@react-navigation/native";
+import { useQueries } from "react-query";
 
 const { width, height } = Dimensions.get("window");
 
-const DetailsScreen = ({ route: { params } }) => {
+const DetailsScreen = ({ route: { params }, navigation }) => {
   const {
     id,
     poster_path,
@@ -36,33 +37,31 @@ const DetailsScreen = ({ route: { params } }) => {
     genre_ids,
   } = params;
 
-  const [credits, setCredits] = useState({});
-  const [similar, setSimilar] = useState([]);
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    const getData = async () => {
-      const resp = await Client.get(ENDPOINTS.MOVIE_CREDITS(params.id));
-      const data = await resp?.data;
-      if (data && data.cast && data.cast.length > 0) {
-        setCredits(data);
-      }
-      console.log("Credits Cast Length", data.cast.length);
-    };
-    getData();
-  }, []);
-
-  useEffect(() => {
-    const getData = async () => {
-      const resp = await Client.get(ENDPOINTS.SIMILAR_MOVIES_BY_ID(params.id));
-      const data = await resp?.data?.results;
-      if (data && data.length > 0) {
-        setSimilar(data);
-      }
-      console.log("Similar Movies Length", data.length);
-    };
-    getData();
-  }, []);
+  const [castQuery, similarQuery] = useQueries([
+    {
+      queryKey: ["cast_crew", id],
+      queryFn: async () => {
+        const resp = await Client.get(ENDPOINTS.MOVIE_CREDITS(params.id));
+        const data = await resp?.data;
+        console.log(
+          "useQuery Similar Cast and Crew Length",
+          data.cast.length + data.crew.length
+        );
+        return data;
+      },
+    },
+    {
+      queryKey: ["similar", id],
+      queryFn: async () => {
+        const resp = await Client.get(
+          ENDPOINTS.SIMILAR_MOVIES_BY_ID(params.id)
+        );
+        const data = await resp?.data;
+        console.log("useQuery Similar Movies Length", data.results.length);
+        return await data;
+      },
+    },
+  ]);
 
   return (
     <View>
@@ -120,7 +119,7 @@ const DetailsScreen = ({ route: { params } }) => {
                 }}
                 lines={1}
               >
-                {vote_average}
+                {vote_average.toFixed(1)}
               </Text>
             </Container>
             <Container horizontal>
@@ -166,15 +165,23 @@ const DetailsScreen = ({ route: { params } }) => {
         >
           CAST
         </Text>
-        <FlatList
-          style={{ marginHorizontal: 16, marginTop: 8 }}
-          data={credits.cast}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <Cast item={item} />}
-          ItemSeparatorComponent={<ItemSeperator width={8} />}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        />
+        {!castQuery.isLoading && !castQuery.isError ? (
+          <FlatList
+            style={{ marginHorizontal: 16, marginTop: 8 }}
+            data={castQuery.data.cast.filter(
+              (cast) => cast.profile_path !== null
+            )}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <Cast item={item} />}
+            ItemSeparatorComponent={<ItemSeperator width={8} />}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          />
+        ) : castQuery.isError ? (
+          <Text>Something Went Wrong: {castQuery.error.message}</Text>
+        ) : (
+          <ActivityIndicator size="small" color={COLORS.light.accent} />
+        )}
         <Container
           horizontal
           justifyContent="space-between"
@@ -185,8 +192,9 @@ const DetailsScreen = ({ route: { params } }) => {
           </Text>
           <TouchableOpacity
             onPress={() =>
-              navigation.navigate("LoadMore", {
-                endpoint: ENDPOINTS.POPULAR,
+              navigation.push("LoadMore", {
+                keyQueries: "similar_all",
+                endpoint: ENDPOINTS.SIMILAR_MOVIES_BY_ID(params.id),
               })
             }
           >
@@ -195,15 +203,23 @@ const DetailsScreen = ({ route: { params } }) => {
             </Text>
           </TouchableOpacity>
         </Container>
-        <FlatList
-          style={{ marginHorizontal: 16, marginTop: 8 }}
-          data={similar}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <Movie push movie={item} />}
-          ItemSeparatorComponent={<ItemSeperator width={8} />}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        />
+        {!similarQuery.isLoading && !similarQuery.isError ? (
+          <FlatList
+            style={{ marginHorizontal: 16, marginTop: 8 }}
+            data={similarQuery.data.results.filter(
+              (movie) => movie.poster_path !== null
+            )}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <Movie push movie={item} />}
+            ItemSeparatorComponent={<ItemSeperator width={8} />}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          />
+        ) : similarQuery.isError ? (
+          <Text>Something Went Wrong: {similarQuery.error.message}</Text>
+        ) : (
+          <ActivityIndicator size="small" color={COLORS.light.accent} />
+        )}
       </ScrollView>
     </View>
   );

@@ -4,6 +4,7 @@ import DetailsScreen from "../screens/DetailsScreen";
 import FullScreen from "../screens/FullScreen";
 import HomeScreen from "../screens/HomeScreen";
 import LoadMoreScreen from "../screens/LoadMoreScreen";
+import ShowAllScreen from "../screens/ShowAllScreen";
 import { COLORS } from "../theme";
 
 const MainStack = createStackNavigator();
@@ -21,6 +22,23 @@ export const AppNavigator = () => (
     <MainStack.Screen name="Details" component={DetailsScreen} />
     <MainStack.Screen name="Cast" component={CastScreen} />
     <MainStack.Screen name="FullImage" component={FullScreen} />
-    <MainStack.Screen name="LoadMore" component={LoadMoreScreen} />
+    <MainStack.Screen
+      name="LoadMore"
+      component={LoadMoreScreen}
+      options={{
+        headerShown: true,
+        headerTitleAlign: "center",
+        headerLeft: () => null,
+      }}
+    />
+    <MainStack.Screen
+      name="ShowAll"
+      component={ShowAllScreen}
+      options={{
+        headerShown: true,
+        headerTitleAlign: "center",
+        headerLeft: () => null,
+      }}
+    />
   </MainStack.Navigator>
 );
